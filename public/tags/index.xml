@@ -2,9 +2,9 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Tags on Bioinformatics, R, Python, etc.</title>
-    <link>/tags/</link>
+    <link>https://jcalendo.netlify.app/tags/</link>
     <description>Recent content in Tags on Bioinformatics, R, Python, etc.</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <language>en-us</language><atom:link href="https://jcalendo.netlify.app/tags/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>

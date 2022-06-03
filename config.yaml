@@ -1,4 +1,4 @@
-baseurl: "/"
+baseurl: "https://jcalendo.netlify.app"
 languageCode: "en-us"
 title: "Bioinformatics, R, Python, etc."
 theme: "hugo-xmin"
