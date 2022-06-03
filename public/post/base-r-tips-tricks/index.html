@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Base R Tips &amp; Tricks | Bioinformatics, R, Python, etc.</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/fonts.css" />
+    
+  </head>
+
+  <body>
+    <nav>
+    <ul class="menu">
+      
+      <li><a href="/">Home</a></li>
+      
+      <li><a href="/about/">About</a></li>
+      
+      <li><a href="/post/">Posts</a></li>
+      
+    </ul>
+    <hr/>
+    </nav>
+
+<div class="article-meta">
+<h1><span class="title">Base R Tips &amp; Tricks</span></h1>
+
+<h2 class="date">2022/05/18</h2>
+</div>
+
+<main>
+
+
+
+<p>I think the <a href="https://www.tidyverse.org/">tidyverse</a> is great and I love
+<a href="https://rdatatable.gitlab.io/data.table/">data.table</a> even more <strong>but</strong> as I’ve
+started to develop <a href="https://coriell-research.github.io/coriell/">my own R packages</a>
+I’ve really tried to cut down on dependencies as much as possible. Understanding
+base R has also proven to be very useful when it comes to manipulating data
+and objects from <a href="https://www.bioconductor.org/">Bioconductor</a> packages. Here, I
+hope to write down some useful base R (and maybe a some <code>data.table</code>) tips and
+tricks that I have found to be useful.</p>
+<div id="example-directory" class="section level2">
+<h2>Example Directory</h2>
+<p>It’s commonly the case that data is located in nested directories where the file
+name is some generic name and the description of the file is given by the parent
+directory like:</p>
+<pre><code>data/
+  sample1/
+    data.tsv
+    data.log
+  sample2/
+    data.tsv
+    data.log
+  sample3/
+    data.tsv
+    data.log</code></pre>
+<p>Where each data.tsv file was constructed with:</p>
+<p><code>df &lt;- data.frame(X = runif(10), Y = runif(10), G = sample(LETTERS, 10))</code></p>
+<p>We can use these sample files as an example for explorinf some base R functionality.</p>
+<div id="listing-all-files-in-a-nested-directory" class="section level3">
+<h3>Listing all files in a nested directory</h3>
+<pre class="r"><code># Create a vector of all .tsv files in the data directory 
+files &lt;- list.files(
+  path = &quot;.&quot;,
+  pattern = &quot;*.tsv&quot;,
+  recursive = TRUE,
+  full.names = TRUE
+  )
+files</code></pre>
+<pre><code>## [1] &quot;./data/sample1/data.tsv&quot; &quot;./data/sample2/data.tsv&quot;
+## [3] &quot;./data/sample3/data.tsv&quot;</code></pre>
+</div>
+<div id="extract-names-from-the-files-from-the-filepaths" class="section level3">
+<h3>Extract names from the files from the filepaths</h3>
+<p>This handy function below acts like <code>stringr::str_extract</code> to extract a regex
+matching the pattern from each filepath.</p>
+<pre class="r"><code>names(files) &lt;- regmatches(files, regexpr(&quot;sample[1-3]&quot;, files))
+files</code></pre>
+<pre><code>##                   sample1                   sample2                   sample3 
+## &quot;./data/sample1/data.tsv&quot; &quot;./data/sample2/data.tsv&quot; &quot;./data/sample3/data.tsv&quot;</code></pre>
+</div>
+<div id="read-all-files-into-a-single-data.frame" class="section level3">
+<h3>Read all files into a single <code>data.frame</code></h3>
+<p>Specifying the names attribute above will allow the rownames of the rbind’ed
+dataframe to include the sample name.</p>
+<p><strong>See also:</strong></p>
+<p><code>vroom::vroom()</code> or <code>data.table::rbindlist(lapply(files, fread))</code></p>
+<pre class="r"><code>df &lt;- do.call(rbind, lapply(files, read.delim))
+
+# Show that each sample&#39;s data is present
+df[c(1:3, 11:13, 21:23), ]</code></pre>
+<pre><code>##                   X          y G
+## sample1.1 0.5549723 0.60149101 J
+## sample1.2 0.2584663 0.03071453 K
+## sample1.3 0.2161686 0.64673181 R
+## sample2.1 0.3261515 0.76681300 K
+## sample2.2 0.7157847 0.95148476 D
+## sample2.3 0.5447386 0.95326993 G
+## sample3.1 0.2666605 0.45367230 Z
+## sample3.2 0.1038362 0.87100857 B
+## sample3.3 0.2831009 0.55207688 W</code></pre>
+</div>
+<div id="create-a-new-column-in-a-data.frame" class="section level3">
+<h3>Create a new column in a <code>data.frame</code></h3>
+<p>Similar to <code>dplyr::mutate()</code> or <code>data.table[, new := fun(d)]</code> we can use
+<code>transform()</code> to add a new column to the <code>data.frame</code></p>
+<p>Below, we use <code>gsub</code> to find and replace any of the row indexes added by the
+<code>rbind</code> call above with ““. This <code>gsub</code> function is similar to <code>stringr::str_remove</code>.
+We then assign these new ‘stripped’ names to a variable called <code>sample_name</code> and
+assign the result back to <code>df</code>.</p>
+<pre class="r"><code>df &lt;- transform(df, sample_name = gsub(&quot;\\.[0-9]+$&quot;, &quot;&quot;, rownames(df)))
+head(df)</code></pre>
+<pre><code>##                   X          y G sample_name
+## sample1.1 0.5549723 0.60149101 J     sample1
+## sample1.2 0.2584663 0.03071453 K     sample1
+## sample1.3 0.2161686 0.64673181 R     sample1
+## sample1.4 0.3716559 0.16923934 Q     sample1
+## sample1.5 0.5579372 0.03099998 W     sample1
+## sample1.6 0.5402452 0.66153924 U     sample1</code></pre>
+</div>
+<div id="summarizing-data" class="section level3">
+<h3>Summarizing data</h3>
+<p><code>table</code> can give really useful counts per group</p>
+<pre class="r"><code>table(Sample = df$sample_name, Letter = df$G)</code></pre>
+<pre><code>##          Letter
+## Sample    A B C D E G H J K L N O P Q R U V W X Z
+##   sample1 1 0 0 0 1 0 0 1 1 1 1 0 0 1 1 1 0 1 0 0
+##   sample2 1 1 1 1 0 1 0 1 1 1 0 0 1 0 0 0 0 0 1 0
+##   sample3 0 1 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 1 1 1</code></pre>
+<p><code>aggregate</code> works like <code>group_by() %&gt;% summarize()</code></p>
+<p>For example if we wanted the mean of the X variable for every sample</p>
+<pre class="r"><code>aggregate(X ~ sample_name, data = df, mean)</code></pre>
+<pre><code>##   sample_name         X
+## 1     sample1 0.4613705
+## 2     sample2 0.4547872
+## 3     sample3 0.3103629</code></pre>
+<p>There is also <code>tapply</code>.</p>
+<pre class="r"><code>tapply(df$X, df$sample_name, mean)</code></pre>
+<pre><code>##   sample1   sample2   sample3 
+## 0.4613705 0.4547872 0.3103629</code></pre>
+<p>The <code>ave</code> function also groups and summarizes. Here, the mean of each factor
+level is returned for each instance of the factor. Like
+<code>data.table</code>’s <code>df[, mean := mean(X), by = sample_name]</code></p>
+<pre class="r"><code>ave(df$X, df$sample_name)</code></pre>
+<pre><code>##  [1] 0.4613705 0.4613705 0.4613705 0.4613705 0.4613705 0.4613705 0.4613705
+##  [8] 0.4613705 0.4613705 0.4613705 0.4547872 0.4547872 0.4547872 0.4547872
+## [15] 0.4547872 0.4547872 0.4547872 0.4547872 0.4547872 0.4547872 0.3103629
+## [22] 0.3103629 0.3103629 0.3103629 0.3103629 0.3103629 0.3103629 0.3103629
+## [29] 0.3103629 0.3103629</code></pre>
+</div>
+</div>
+
+</main>
+
+  <footer>
+  
+  
+  <hr/>
+  <a href="https://github.com/jcalendo">Github</a>
+  
+  </footer>
+  </body>
+</html>
+

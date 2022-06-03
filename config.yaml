@@ -1,0 +1,31 @@
+baseurl: "/"
+languageCode: "en-us"
+title: "Bioinformatics, R, Python, etc."
+theme: "hugo-xmin"
+googleAnalytics: ""
+disqusShortname: ""
+ignoreFiles: ["\\.Rmd$", "\\.Rmarkdown$", "_cache$", "\\.knit\\.md$", "\\.utf8\\.md$"]
+footnotereturnlinkcontents: "↩"
+
+menu:
+  main:
+    - name: Home
+      url: ""
+      weight: 1
+    - name: About
+      url: "about/"
+      weight: 2
+    - name: Posts
+      url: "post/"
+      weight: 3
+
+params:
+  description: "R, Python, Bioinformatics, etc."
+  footer: "[Github](https://github.com/jcalendo)"
+
+markup:
+  highlight:
+    codeFences: false
+  goldmark:
+    renderer:
+      unsafe: true

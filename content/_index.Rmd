@@ -1,0 +1,15 @@
+---
+title: "Home"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I've been learning R, Python, and Bioinformatics for the last 3-5 years. So 
+I thought I'd start to write down some of the things I've learned, mostly as a
+record for myself but also maybe as a helpful resource for others. 
+
+Check out the [About](/about/) page for personal information.
+
+## Blog Posts:

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Bioinformatics, R, Python, etc.</title>
+    <link>/post/</link>
+    <description>Recent content in Posts on Bioinformatics, R, Python, etc.</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 18 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Base R Tips &amp; Tricks</title>
+      <link>/post/base-r-tips-tricks/</link>
+      <pubDate>Wed, 18 May 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/post/base-r-tips-tricks/</guid>
+      <description>I think the tidyverse is great and I love data.table even more but as I’ve started to develop my own R packages I’ve really tried to cut down on dependencies as much as possible. Understanding base R has also proven to be very useful when it comes to manipulating data and objects from Bioconductor packages. Here, I hope to write down some useful base R (and maybe a some data.</description>
+    </item>
+    
+    <item>
+      <title>Estimating K-mer Probabilities</title>
+      <link>/post/estimating-k-mer-probabilities/</link>
+      <pubDate>Wed, 18 May 2022 00:00:00 +0000</pubDate>
+      
+      <guid>/post/estimating-k-mer-probabilities/</guid>
+      <description>This was a challenge problem set forth in Bioinformatics Algorithms An Active Learning Approach by Phillip Compeau and Pavel Pevzner (2018). I borrow heavily from their examples.
+The Problem What is the probability that a some k-mer will appear at least \(t\) times as a sub-string of a random string of length \(N\) composed of alphabet \(A\)?
+For example, what is the probability that some 9-mer appears 3 or more times in a random DNA string of length 500?</description>
+    </item>
+    
+  </channel>
+</rss>
