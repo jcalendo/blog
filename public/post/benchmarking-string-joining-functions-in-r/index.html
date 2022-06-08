@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Benchmarking String Joining Functions in R | Bioinformatics, R, Python, etc.</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/fonts.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/github.min.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <nav>
+    <ul class="menu">
+      
+      <li><a href="/">Home</a></li>
+      
+      <li><a href="/about/">About</a></li>
+      
+      <li><a href="/post/">Posts</a></li>
+      
+    </ul>
+    <hr/>
+    </nav>
+
+<div class="article-meta">
+<h1><span class="title">Benchmarking String Joining Functions in R</span></h1>
+
+<h2 class="date">2022/06/02</h2>
+</div>
+
+<main>
+
+
+
+<p>I recently had to concatenate tens of millions of strings into a single column of
+strings (thanks Bismark coverage files…) to be used as a unique rownames for a
+combined data.frame of methylation values for multiple samples. I was surprised
+when even my <code>data.table</code> code which was something like,
+<code>dt[, Location := paste(chr, start, sep = "-")]</code>, was taking minutes.</p>
+<p>So then, what is the fastest way to combine a bunch of strings?</p>
+<p>Since I really care about this in the context of genetic data I’ll simulate
+strings from “Chromosomes” and “Start positions” and concatenate them into a
+single “Loci”. e.g. “chr1-45678”</p>
+<div id="load-libraries" class="section level2">
+<h2>Load Libraries</h2>
+<pre class="r"><code>library(glue)
+library(stringi)
+library(stringr)
+library(data.table)
+library(ggplot2)</code></pre>
+</div>
+<div id="create-some-test-strings" class="section level2">
+<h2>Create some test strings</h2>
+<p>Let’s make 100 million of these strings to simulate a real test set size.</p>
+<p>I will also pre-create a vector of delimiter values to be used instead of
+having R recycle these values within the function calls themselves.</p>
+<pre class="r"><code>set.seed(1234)
+
+N &lt;- 1e8
+chroms &lt;- sample(paste0(&quot;chr&quot;, as.character(1:22, &quot;X&quot;, &quot;Y&quot;)), size = N, replace = TRUE)
+starts &lt;- as.character(sample.int(1e5, size = N, replace = TRUE))
+seps &lt;- rep(&quot;-&quot;, N)</code></pre>
+</div>
+<div id="candidates" class="section level2">
+<h2>Candidates</h2>
+<ul>
+<li><code>paste</code>: built-in function for concatenating strings</li>
+<li><code>paste0</code>: built-in function for concatenating strings (<code>paste(..., sep=""</code>)</li>
+<li><code>sprintf</code>: wrapper around C function <code>sprintf</code> for character formatting of strings</li>
+<li><code>stringr::str_c</code>: <code>stringr</code> implementation of <code>paste</code></li>
+<li><code>stringi::stri_c</code>: <code>stringi</code> function that <code>stringr::str_c</code> wraps</li>
+<li><code>glue::glue</code>: String interpolation. Has to be converted to a vector.</li>
+</ul>
+<p>Since the test cases are so large I won’t use <code>bench::mark()</code> but will instead
+opt for <code>system.time()</code> and call each expression 10 times. This is probably more
+reflective of an actual use case.</p>
+</div>
+<div id="time-it" class="section level2">
+<h2>Time it!</h2>
+<pre class="r"><code># Define a function for timing each expression
+timeIt &lt;- function(expr, times = 10) {
+  results &lt;- vector(&quot;list&quot;, length = times)
+  for (i in 1:times) {
+    # Only select the User time and the Elapsed Time from system.time results
+    results[[i]] &lt;- system.time(eval(expr))[c(1, 3)]
+  }
+  data.frame(do.call(rbind, results))
+}
+
+# Create a list of functions to test
+expressions &lt;- list(
+  &quot;paste&quot; = quote(paste(chroms, starts, sep = &quot;-&quot;)),
+  &quot;paste0&quot; = quote(paste0(chroms, seps, starts)),
+  &quot;sprintf&quot; = quote(sprintf(&quot;%s%s%s&quot;, chroms, seps, starts)),
+  &quot;stri_join&quot; = quote(stri_join(chroms, seps, starts, ignore_null = TRUE)),
+  &quot;str_c&quot; = quote(str_c(chroms, seps, starts)),
+  &quot;glue&quot; = quote(as.vector(glue(&quot;{chroms}{seps}{starts}&quot;)))
+  )
+
+# Time the execution of all functions and bind into a single data.table
+dt &lt;- rbindlist(lapply(expressions, timeIt), idcol = &quot;expression&quot;)</code></pre>
+</div>
+<div id="plot-the-results" class="section level2">
+<h2>Plot the results</h2>
+<pre class="r"><code># Cast values long for plotting
+dt.m &lt;- melt(
+  dt, 
+  id.vars = &quot;expression&quot;,
+  variable.name = &quot;parameter&quot;,
+  value.name = &quot;time&quot;
+  )
+
+# Plot the results
+ggplot(dt.m, aes(reorder(expression, time, median), time)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1) +
+  labs(title = &quot;String Concatentation Times&quot;,
+       subtitle = &quot;Concatenating (3) 100 million element vectors&quot;,
+       x = &quot;Expression&quot;,
+       y = &quot;Time (s)&quot;) +
+  facet_wrap(~parameter, scales = &quot;free_y&quot;) +
+  theme_light() +
+  theme(
+    axis.text.x = element_text(size = 12, color = &quot;black&quot;, angle = 45, hjust = 1),
+    plot.title = element_text(size = 18, face = &quot;bold&quot;),
+    strip.text = element_text(size = 12, color = &quot;black&quot;)
+    )</code></pre>
+<p><img src="https://jcalendo.netlify.app/post/benchmarking-string-joining-functions-in-r/index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+
+</main>
+
+  <footer>
+  <script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/r.min.js"></script>
+
+<script>
+hljs.configure({languages: []});
+hljs.initHighlightingOnLoad();
+</script>
+  
+  <hr/>
+  <a href="https://github.com/jcalendo">Github</a>
+  
+  </footer>
+  </body>
+</html>
+

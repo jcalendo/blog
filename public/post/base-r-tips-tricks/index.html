@@ -40,7 +40,7 @@ I’ve really tried to cut down on dependencies as much as possible. Understandi
 base R has also proven to be very useful when it comes to manipulating data
 and objects from <a href="https://www.bioconductor.org/">Bioconductor</a> packages. Here, I
 hope to write down some useful base R (and maybe a some <code>data.table</code>) tips and
-tricks that I have found to be useful.</p>
+tricks.</p>
 <div id="example-directory" class="section level2">
 <h2>Example Directory</h2>
 <p>It’s commonly the case that data is located in nested directories where the file
@@ -58,7 +58,7 @@ directory like:</p>
     data.log</code></pre>
 <p>Where each data.tsv file was constructed with:</p>
 <p><code>df &lt;- data.frame(X = runif(10), Y = runif(10), G = sample(LETTERS, 10))</code></p>
-<p>We can use these sample files as an example for explorinf some base R functionality.</p>
+<p>We can use these sample files as an example for exploring some base R functionality.</p>
 <div id="listing-all-files-in-a-nested-directory" class="section level3">
 <h3>Listing all files in a nested directory</h3>
 <pre class="r"><code># Create a vector of all .tsv files in the data directory 
@@ -75,7 +75,7 @@ files</code></pre>
 <div id="extract-names-from-the-files-from-the-filepaths" class="section level3">
 <h3>Extract names from the files from the filepaths</h3>
 <p>This handy function below acts like <code>stringr::str_extract</code> to extract a regex
-matching the pattern from each filepath.</p>
+matching the pattern from each file path.</p>
 <pre class="r"><code>names(files) &lt;- regmatches(files, regexpr(&quot;sample[1-3]&quot;, files))
 files</code></pre>
 <pre><code>##                   sample1                   sample2                   sample3 
@@ -84,7 +84,7 @@ files</code></pre>
 <div id="read-all-files-into-a-single-data.frame" class="section level3">
 <h3>Read all files into a single <code>data.frame</code></h3>
 <p>Specifying the names attribute above will allow the rownames of the rbind’ed
-dataframe to include the sample name.</p>
+data.frame to include the sample name.</p>
 <p><strong>See also:</strong></p>
 <p><code>vroom::vroom()</code> or <code>data.table::rbindlist(lapply(files, fread))</code></p>
 <pre class="r"><code>df &lt;- do.call(rbind, lapply(files, read.delim))

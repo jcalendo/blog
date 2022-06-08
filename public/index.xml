@@ -6,7 +6,17 @@
     <description>Recent content in Home on Bioinformatics, R, Python, etc.</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 18 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://jcalendo.netlify.app/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 02 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://jcalendo.netlify.app/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Benchmarking String Joining Functions in R</title>
+      <link>https://jcalendo.netlify.app/post/benchmarking-string-joining-functions-in-r/</link>
+      <pubDate>Thu, 02 Jun 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://jcalendo.netlify.app/post/benchmarking-string-joining-functions-in-r/</guid>
+      <description>I recently had to concatenate tens of millions of strings into a single column of strings (thanks Bismark coverage files…) to be used as a unique rownames for a combined data.frame of methylation values for multiple samples. I was surprised when even my data.table code which was something like, dt[, Location := paste(chr, start, sep = &#34;-&#34;)], was taking minutes.
+So then, what is the fastest way to combine a bunch of strings?</description>
+    </item>
+    
     <item>
       <title>Base R Tips &amp; Tricks</title>
       <link>https://jcalendo.netlify.app/post/base-r-tips-tricks/</link>

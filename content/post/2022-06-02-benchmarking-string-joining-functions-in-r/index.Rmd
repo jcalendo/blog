@@ -1,0 +1,114 @@
+---
+title: Benchmarking String Joining Functions in R
+author: ''
+date: '2022-06-02'
+slug: benchmarking-string-joining-functions-in-r
+categories: []
+tags: []
+---
+
+I recently had to concatenate tens of millions of strings into a single column of 
+strings (thanks Bismark coverage files...) to be used as a unique rownames for a 
+combined data.frame of methylation values for multiple samples. I was surprised 
+when even my `data.table` code which was something like, 
+`dt[, Location := paste(chr, start, sep = "-")]`, was taking minutes. 
+
+So then, what is the fastest way to combine a bunch of strings? 
+
+Since I really care about this in the context of genetic data I'll simulate 
+strings from "Chromosomes" and "Start positions" and concatenate them into a 
+single "Loci". e.g. "chr1-45678" 
+
+## Load Libraries
+
+```{r message=FALSE}
+library(glue)
+library(stringi)
+library(stringr)
+library(data.table)
+library(ggplot2)
+```
+
+## Create some test strings
+
+Let's make 100 million of these strings to simulate a real test set size. 
+
+I will also pre-create a vector of delimiter values to be used instead of 
+having R recycle these values within the function calls themselves.
+
+```{r}
+set.seed(1234)
+
+N <- 1e8
+chroms <- sample(paste0("chr", as.character(1:22, "X", "Y")), size = N, replace = TRUE)
+starts <- as.character(sample.int(1e5, size = N, replace = TRUE))
+seps <- rep("-", N)
+```
+
+## Candidates
+
+- `paste`: built-in function for concatenating strings
+- `paste0`: built-in function for concatenating strings (`paste(..., sep=""`)
+- `sprintf`: wrapper around C function `sprintf` for character formatting of strings
+- `stringr::str_c`: `stringr` implementation of `paste`
+- `stringi::stri_c`: `stringi` function that `stringr::str_c` wraps
+- `glue::glue`: String interpolation. Has to be converted to a vector.
+
+Since the test cases are so large I won't use `bench::mark()` but will instead
+opt for `system.time()` and call each expression 10 times. This is probably more
+reflective of an actual use case.
+
+## Time it!
+
+```{r}
+# Define a function for timing each expression
+timeIt <- function(expr, times = 10) {
+  results <- vector("list", length = times)
+  for (i in 1:times) {
+    # Only select the User time and the Elapsed Time from system.time results
+    results[[i]] <- system.time(eval(expr))[c(1, 3)]
+  }
+  data.frame(do.call(rbind, results))
+}
+
+# Create a list of functions to test
+expressions <- list(
+  "paste" = quote(paste(chroms, starts, sep = "-")),
+  "paste0" = quote(paste0(chroms, seps, starts)),
+  "sprintf" = quote(sprintf("%s%s%s", chroms, seps, starts)),
+  "stri_join" = quote(stri_join(chroms, seps, starts, ignore_null = TRUE)),
+  "str_c" = quote(str_c(chroms, seps, starts)),
+  "glue" = quote(as.vector(glue("{chroms}{seps}{starts}")))
+  )
+
+# Time the execution of all functions and bind into a single data.table
+dt <- rbindlist(lapply(expressions, timeIt), idcol = "expression")
+```
+
+## Plot the results
+
+```{r warning=FALSE}
+# Cast values long for plotting
+dt.m <- melt(
+  dt, 
+  id.vars = "expression",
+  variable.name = "parameter",
+  value.name = "time"
+  )
+
+# Plot the results
+ggplot(dt.m, aes(reorder(expression, time, median), time)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1) +
+  labs(title = "String Concatentation Times",
+       subtitle = "Concatenating (3) 100 million element vectors",
+       x = "Expression",
+       y = "Time (s)") +
+  facet_wrap(~parameter, scales = "free_y") +
+  theme_light() +
+  theme(
+    axis.text.x = element_text(size = 12, color = "black", angle = 45, hjust = 1),
+    plot.title = element_text(size = 18, face = "bold"),
+    strip.text = element_text(size = 12, color = "black")
+    )
+```
