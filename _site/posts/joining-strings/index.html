@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Gennaro Calendo">
-<meta name="dcterms.date" content="2023-07-20">
+<meta name="dcterms.date" content="2023-07-22">
 <meta name="description" content="Is there a fast way to join millions of string in R?">
 
 <title>bootstrap everything - Joining Millions of Strings in R</title>
@@ -158,6 +158,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </i> 
  </a>
   </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"><i class="bi bi-rss" role="img">
+</i> 
+ </a>
+  </li>  
 </ul>
               <div id="quarto-search" class="" title="Search"></div>
           </div> <!-- /navcollapse -->
@@ -193,7 +198,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">July 20, 2023</p>
+        <p class="date">July 22, 2023</p>
       </div>
     </div>
       
@@ -210,12 +215,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<p>I recently had to concatenate tens of millions of strings into a single column of strings (thanks Bismark coverage files…) to be used as a unique rownames for a combined data.frame of methylation values for multiple samples. I was surprised when even my <code>data.table</code> code which was something like, <code>dt[, Location := paste(chr, start, sep = "-")]</code>, was taking minutes.</p>
+<p>I recently had to concatenate tens of millions of strings into a single column of strings. I was surprised when even my <code>data.table</code> code, which was something like <code>dt[, Location := paste(chr, start, sep = "-")]</code>, was taking minutes.</p>
 <p>So then, what is the fastest way to combine a bunch of strings?</p>
 <p>Since I really care about this in the context of genetic data I’ll simulate strings from “Chromosomes” and “Start positions” and concatenate them into a single “Loci”. e.g.&nbsp;“chr1-45678”</p>
-<section id="load-libraries" class="level2">
-<h2 class="anchored" data-anchor-id="load-libraries">Load Libraries</h2>
-<p>The candidates that I want to test are:</p>
+<section id="the-candidates" class="level2">
+<h2 class="anchored" data-anchor-id="the-candidates">The Candidates</h2>
+<p>Like most things in R there are a bunch of ways to complete the same task. The approaches below are a few that I could think of:</p>
 <ul>
 <li><code>paste</code>: base function for concatenating strings</li>
 <li><code>paste0</code>: base function for concatenating strings (<code>paste(..., sep=""</code>)</li>
@@ -239,8 +244,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="fl">1e6</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>chroms <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">paste0</span>(<span class="st">"chr"</span>, <span class="fu">as.character</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">22</span>, <span class="st">"X"</span>, <span class="st">"Y"</span>)), <span class="at">size =</span> N, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>starts <span class="ot">&lt;-</span> <span class="fu">as.character</span>(<span class="fu">sample.int</span>(<span class="fl">1e5</span>, <span class="at">size =</span> N, <span class="at">replace =</span> <span class="cn">TRUE</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>chroms <span class="ot">&lt;-</span> <span class="fu">sample</span>(</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste0</span>(<span class="st">"chr"</span>, <span class="fu">as.character</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">22</span>, <span class="st">"X"</span>, <span class="st">"Y"</span>)),</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">size =</span> N, <span class="at">replace =</span> <span class="cn">TRUE</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>starts <span class="ot">&lt;-</span> <span class="fu">as.character</span>(<span class="fu">sample.int</span>(<span class="fl">1e5</span>, <span class="at">size =</span> N, <span class="at">replace =</span> <span class="cn">TRUE</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="time-it" class="level2">
@@ -264,12 +272,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the results</span></span>
 <span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(results) <span class="sc">+</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Execution Time for Joining 1 Million Element Vectors"</span>,</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Time"</span>,</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Function"</span>) <span class="sc">+</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>),</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Execution Time for Joining 1 Million Element Vectors"</span>,</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Time"</span>,</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Function"</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>),</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"bottom"</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Loading required namespace: tidyr</code></pre>
 </div>
@@ -288,10 +300,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">setDTthreads</span>(<span class="at">percent =</span> <span class="dv">100</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> <span class="fu">data.table</span>(</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Chromosome =</span> <span class="fu">sample</span>(<span class="fu">paste0</span>(<span class="st">"chr"</span>, <span class="fu">as.character</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">22</span>, <span class="st">"X"</span>, <span class="st">"Y"</span>)), </span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">size =</span> <span class="fl">1e8</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">Start =</span> <span class="fu">as.character</span>(<span class="fu">sample.int</span>(<span class="fl">1e5</span>, <span class="at">size =</span> <span class="fl">1e8</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Chromosome =</span> <span class="fu">sample</span>(<span class="fu">paste0</span>(<span class="st">"chr"</span>, <span class="fu">as.character</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">22</span>, <span class="st">"X"</span>, <span class="st">"Y"</span>)),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">1e8</span>, <span class="at">replace =</span> <span class="cn">TRUE</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">Start =</span> <span class="fu">as.character</span>(<span class="fu">sample.int</span>(<span class="fl">1e5</span>, <span class="at">size =</span> <span class="fl">1e8</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Write the data out using <code>fwrite(..., sep="-")</code> to concatenate the columns and then read them back in as a single concatenated column with <code>fread</code></p>
 <div class="cell">
@@ -301,7 +314,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
- 58.486   1.785  38.855 </code></pre>
+ 57.580   1.586  34.265 </code></pre>
 </div>
 </div>
 <p>And how does this compare to concatenating with <code>stri_c</code></p>
@@ -309,7 +322,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(dt[, <span class="at">chr_start :=</span> <span class="fu">stri_c</span>(Chromosome, Start, <span class="at">sep=</span><span class="st">"-"</span>)])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
- 36.527   1.260  37.797 </code></pre>
+ 36.670   1.280  37.952 </code></pre>
 </div>
 </div>
 <p>It looks kinda crazy but maybe if you have enough space to spare and a lot of threads to throw at it then the ‘hacky’ solution might be a fast alternative for extremely large string concatenations; although the difference may not be large enough to to really matter too much in the end.</p>

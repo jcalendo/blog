@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Posts",
     "section": "",
-    "text": "R\n\n\n\n\nIs there a fast way to join millions of string in R?\n\n\n\n\n\n\nJul 20, 2023\n\n\nGennaro Calendo\n\n\n\n\n\n\nNo matching items"
+    "text": "R\n\n\n\n\nIs there a fast way to join millions of string in R?\n\n\n\n\n\n\nJul 22, 2023\n\n\nGennaro Calendo\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
@@ -14,25 +14,11 @@
     "text": "My place for rough ideas about bioinformatics, statistics, and coding."
   },
   {
-    "objectID": "posts/post-with-code/index.html",
-    "href": "posts/post-with-code/index.html",
-    "title": "Post With Code",
-    "section": "",
-    "text": "1 + 1\n\n[1] 2"
-  },
-  {
-    "objectID": "posts/welcome/index.html",
-    "href": "posts/welcome/index.html",
-    "title": "Welcome To My Blog",
-    "section": "",
-    "text": "Since this post doesn’t specify an explicit image, the first image in the post will be used in the listing page of posts."
-  },
-  {
     "objectID": "posts/joining-strings/index.html",
     "href": "posts/joining-strings/index.html",
     "title": "Joining Millions of Strings in R",
     "section": "",
-    "text": "I recently had to concatenate tens of millions of strings into a single column of strings (thanks Bismark coverage files…) to be used as a unique rownames for a combined data.frame of methylation values for multiple samples. I was surprised when even my data.table code which was something like, dt[, Location := paste(chr, start, sep = \"-\")], was taking minutes.\nSo then, what is the fastest way to combine a bunch of strings?\nSince I really care about this in the context of genetic data I’ll simulate strings from “Chromosomes” and “Start positions” and concatenate them into a single “Loci”. e.g. “chr1-45678”"
+    "text": "I recently had to concatenate tens of millions of strings into a single column of strings. I was surprised when even my data.table code, which was something like dt[, Location := paste(chr, start, sep = \"-\")], was taking minutes.\nSo then, what is the fastest way to combine a bunch of strings?\nSince I really care about this in the context of genetic data I’ll simulate strings from “Chromosomes” and “Start positions” and concatenate them into a single “Loci”. e.g. “chr1-45678”"
   },
   {
     "objectID": "posts/joining-strings/index.html#load-libraries",
@@ -46,20 +32,27 @@
     "href": "posts/joining-strings/index.html#create-some-test-strings",
     "title": "Joining Millions of Strings in R",
     "section": "Create some test strings",
-    "text": "Create some test strings\nLet’s make 1 million “chromosome-start” strings to simulate a realistic test set size.\n\nset.seed(1234)\n\nN <- 1e6\nchroms <- sample(paste0(\"chr\", as.character(1:22, \"X\", \"Y\")), size = N, replace = TRUE)\nstarts <- as.character(sample.int(1e5, size = N, replace = TRUE))"
+    "text": "Create some test strings\nLet’s make 1 million “chromosome-start” strings to simulate a realistic test set size.\n\nset.seed(1234)\n\nN <- 1e6\nchroms <- sample(\n  paste0(\"chr\", as.character(1:22, \"X\", \"Y\")),\n  size = N, replace = TRUE\n)\nstarts <- as.character(sample.int(1e5, size = N, replace = TRUE))"
   },
   {
     "objectID": "posts/joining-strings/index.html#time-it",
     "href": "posts/joining-strings/index.html#time-it",
     "title": "Joining Millions of Strings in R",
     "section": "Time it!",
-    "text": "Time it!\nThe code below times the execution of each of the string joining expressions 30 times. Since glue has to be converted to a character vector after interpolation, I created a second expression without the coercion to see how much that affects the timing. It is for this reason that the check argument is set to FALSE.\n\n# Run the benchmark\nresults <- bench::mark(\n  \"paste\" = paste(chroms, starts, sep = \"-\"),\n  \"paste0\" = paste0(chroms, \"-\", starts),\n  \"sprintf\" = sprintf(\"%s%s%s\", chroms, \"-\", starts),\n  \"stri_c\" = stri_c(chroms, starts, sep = \"-\"),\n  \"str_c\" = str_c(chroms, starts, sep = \"-\"),\n  \"glue\" = as.character(glue(\"{chroms}-{starts}\")),\n  \"glue2\" = glue(\"{chroms}-{starts}\"),\n  check = FALSE,\n  memory = TRUE,\n  min_time = Inf,\n  max_iterations = 30\n)\n\n# Plot the results\nautoplot(results) +\n  labs(title = \"Execution Time for Joining 1 Million Element Vectors\",\n       x = \"Time\",\n       y = \"Function\") +\n  theme_minimal() +\n  theme(plot.title = element_text(face = \"bold\", size = 16),\n        legend.position = \"bottom\")\n\nLoading required namespace: tidyr\n\n\n\n\n\nIt looks like the clear winners are stringi::stri_c and stringr::str_c. This makes sense. What was surprising is that paste0 performs worse than paste with sep=\"-\".\nThere’s one, somewhat hacky, solution I wanted to test. What if we were to instead write the data out as a file where the vectors are concatenated with “-” as a delimiter and then read this concatenated file back in as a single column?"
+    "text": "Time it!\nThe code below times the execution of each of the string joining expressions 30 times. Since glue has to be converted to a character vector after interpolation, I created a second expression without the coercion to see how much that affects the timing. It is for this reason that the check argument is set to FALSE.\n\n# Run the benchmark\nresults <- bench::mark(\n  \"paste\" = paste(chroms, starts, sep = \"-\"),\n  \"paste0\" = paste0(chroms, \"-\", starts),\n  \"sprintf\" = sprintf(\"%s%s%s\", chroms, \"-\", starts),\n  \"stri_c\" = stri_c(chroms, starts, sep = \"-\"),\n  \"str_c\" = str_c(chroms, starts, sep = \"-\"),\n  \"glue\" = as.character(glue(\"{chroms}-{starts}\")),\n  \"glue2\" = glue(\"{chroms}-{starts}\"),\n  check = FALSE,\n  memory = TRUE,\n  min_time = Inf,\n  max_iterations = 30\n)\n\n# Plot the results\nautoplot(results) +\n  labs(\n    title = \"Execution Time for Joining 1 Million Element Vectors\",\n    x = \"Time\",\n    y = \"Function\"\n  ) +\n  theme_minimal() +\n  theme(\n    plot.title = element_text(face = \"bold\", size = 16),\n    legend.position = \"bottom\"\n  )\n\nLoading required namespace: tidyr\n\n\n\n\n\nIt looks like the clear winners are stringi::stri_c and stringr::str_c. This makes sense. What was surprising is that paste0 performs worse than paste with sep=\"-\".\nThere’s one, somewhat hacky, solution I wanted to test. What if we were to instead write the data out as a file where the vectors are concatenated with “-” as a delimiter and then read this concatenated file back in as a single column?"
   },
   {
     "objectID": "posts/joining-strings/index.html#data.tablefwrite-data.tablefread",
     "href": "posts/joining-strings/index.html#data.tablefwrite-data.tablefread",
     "title": "Joining Millions of Strings in R",
     "section": "data.table::fwrite & data.table::fread",
-    "text": "data.table::fwrite & data.table::fread\nAssuming more threads makes this faster(?) I’ll max out all 8 cores on my machine. Also, I doubt that this specific example will be faster on only 1 million elements so I’ll bump up the number of elements to 100 million and see how it compares against the fastest function from above.\n\nlibrary(data.table)\nsetDTthreads(percent = 100)\n\ndt <- data.table(\n  Chromosome = sample(paste0(\"chr\", as.character(1:22, \"X\", \"Y\")), \n                      size = 1e8, replace = TRUE),\n  Start = as.character(sample.int(1e5, size = 1e8, replace = TRUE))\n)\n\nWrite the data out using fwrite(..., sep=\"-\") to concatenate the columns and then read them back in as a single concatenated column with fread\n\nsystem.time({\n  fwrite(dt, file = \"test.txt\", sep = \"-\", col.names = FALSE)\n  fread(\"test.txt\", col.names = \"chr_start\")\n})\n\n   user  system elapsed \n 58.486   1.785  38.855 \n\n\nAnd how does this compare to concatenating with stri_c\n\nsystem.time(dt[, chr_start := stri_c(Chromosome, Start, sep=\"-\")])\n\n   user  system elapsed \n 36.527   1.260  37.797 \n\n\nIt looks kinda crazy but maybe if you have enough space to spare and a lot of threads to throw at it then the ‘hacky’ solution might be a fast alternative for extremely large string concatenations; although the difference may not be large enough to to really matter too much in the end."
+    "text": "data.table::fwrite & data.table::fread\nAssuming more threads makes this faster(?) I’ll max out all 8 cores on my machine. Also, I doubt that this specific example will be faster on only 1 million elements so I’ll bump up the number of elements to 100 million and see how it compares against the fastest function from above.\n\nlibrary(data.table)\nsetDTthreads(percent = 100)\n\ndt <- data.table(\n  Chromosome = sample(paste0(\"chr\", as.character(1:22, \"X\", \"Y\")),\n    size = 1e8, replace = TRUE\n  ),\n  Start = as.character(sample.int(1e5, size = 1e8, replace = TRUE))\n)\n\nWrite the data out using fwrite(..., sep=\"-\") to concatenate the columns and then read them back in as a single concatenated column with fread\n\nsystem.time({\n  fwrite(dt, file = \"test.txt\", sep = \"-\", col.names = FALSE)\n  fread(\"test.txt\", col.names = \"chr_start\")\n})\n\n   user  system elapsed \n 57.580   1.586  34.265 \n\n\nAnd how does this compare to concatenating with stri_c\n\nsystem.time(dt[, chr_start := stri_c(Chromosome, Start, sep=\"-\")])\n\n   user  system elapsed \n 36.670   1.280  37.952 \n\n\nIt looks kinda crazy but maybe if you have enough space to spare and a lot of threads to throw at it then the ‘hacky’ solution might be a fast alternative for extremely large string concatenations; although the difference may not be large enough to to really matter too much in the end."
+  },
+  {
+    "objectID": "posts/joining-strings/index.html#the-candidates",
+    "href": "posts/joining-strings/index.html#the-candidates",
+    "title": "Joining Millions of Strings in R",
+    "section": "The Candidates",
+    "text": "The Candidates\nLike most things in R there are a bunch of ways to complete the same task. The approaches below are a few that I could think of:\n\npaste: base function for concatenating strings\npaste0: base function for concatenating strings (paste(..., sep=\"\")\nsprintf: base function for C-style sprintf character formatting of strings\nstringi::stri_c: stringi function for combining multiple character vectors\nstringr::str_c: stringr function that wraps stringi but conforms to tidyverse recycling and NA rules\nglue::glue: String interpolation. Has to be converted to a vector after interpolation.\n\n\nlibrary(glue)\nlibrary(stringi)\nlibrary(stringr)\nlibrary(ggplot2)\nlibrary(bench)"
   }
 ]

@@ -2,26 +2,24 @@
 title: "Joining Millions of Strings in R"
 description: "Is there a fast way to join millions of string in R?"
 author: "Gennaro Calendo"
-date: "7/20/2023"
+date: "7/22/2023"
 categories: [R]
 feed: true
 ---
 
-I recently had to concatenate tens of millions of strings into a single column of 
-strings (thanks Bismark coverage files...) to be used as a unique rownames for a 
-combined data.frame of methylation values for multiple samples. I was surprised 
-when even my `data.table` code which was something like, 
-`dt[, Location := paste(chr, start, sep = "-")]`, was taking minutes. 
+I recently had to concatenate tens of millions of strings into a single column 
+of strings. I was surprised when even my `data.table` code, which was something like `dt[, Location := paste(chr, start, sep = "-")]`, was taking minutes. 
 
 So then, what is the fastest way to combine a bunch of strings? 
 
 Since I really care about this in the context of genetic data I'll simulate 
 strings from "Chromosomes" and "Start positions" and concatenate them into a 
-single "Loci". e.g. "chr1-45678" 
+single "Loci". e.g. "chr1-45678"
 
-## Load Libraries
+## The Candidates
 
-The candidates that I want to test are:
+Like most things in R there are a bunch of ways to complete the same task. The
+approaches below are a few that I could think of:
 
 - `paste`: base function for concatenating strings
 - `paste0`: base function for concatenating strings (`paste(..., sep=""`)
@@ -49,7 +47,10 @@ set size.
 set.seed(1234)
 
 N <- 1e6
-chroms <- sample(paste0("chr", as.character(1:22, "X", "Y")), size = N, replace = TRUE)
+chroms <- sample(
+  paste0("chr", as.character(1:22, "X", "Y")),
+  size = N, replace = TRUE
+)
 starts <- as.character(sample.int(1e5, size = N, replace = TRUE))
 ```
 
@@ -79,12 +80,16 @@ results <- bench::mark(
 
 # Plot the results
 autoplot(results) +
-  labs(title = "Execution Time for Joining 1 Million Element Vectors",
-       x = "Time",
-       y = "Function") +
+  labs(
+    title = "Execution Time for Joining 1 Million Element Vectors",
+    x = "Time",
+    y = "Function"
+  ) +
   theme_minimal() +
-  theme(plot.title = element_text(face = "bold", size = 16),
-        legend.position = "bottom")
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    legend.position = "bottom"
+  )
 ```
 
 It looks like the clear winners are `stringi::stri_c` and `stringr::str_c`. 
@@ -108,8 +113,9 @@ library(data.table)
 setDTthreads(percent = 100)
 
 dt <- data.table(
-  Chromosome = sample(paste0("chr", as.character(1:22, "X", "Y")), 
-                      size = 1e8, replace = TRUE),
+  Chromosome = sample(paste0("chr", as.character(1:22, "X", "Y")),
+    size = 1e8, replace = TRUE
+  ),
   Start = as.character(sample.int(1e5, size = 1e8, replace = TRUE))
 )
 ```
