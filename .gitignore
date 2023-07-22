@@ -3,6 +3,6 @@
 .RData
 .Ruserdata
 
-./posts/joining-strings/test.txt
+posts/joining-strings/test.txt
 
 /.quarto/
