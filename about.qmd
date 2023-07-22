@@ -1,6 +1,6 @@
 ---
 title: "About"
-image: ophie.jpg
+image: ophie.png
 about:
   template: jolla
   image-width: 8em
