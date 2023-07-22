@@ -1,0 +1,23 @@
+project:
+  type: website
+
+website:
+  title: "bootstrap everything"
+  site-url: https://jcalendo.netlify.app/
+  description: "Bioinformatics, code and statistics"
+  navbar:
+    right:
+      - about.qmd
+      - icon: github
+        href: https://github.com/jcalendo
+      - icon: linkedin
+        href: https://www.linkedin.com/in/gennaro-calendo/
+      - icon: rss
+        href: index.xml
+format:
+  html:
+    theme: litera
+    css: styles.css
+
+
+

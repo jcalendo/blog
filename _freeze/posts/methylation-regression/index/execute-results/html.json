@@ -1,0 +1,14 @@
+{
+  "hash": "1de56537c636134c4573e5c0bbd05adf",
+  "result": {
+    "markdown": "---\ntitle: \"The Many (bad) Ways to Regress Age ~ Methylation\"\ndescription: \"Creating your own methylation aging clock the dumb way\"\nauthor: \"Gennaro Calendo\"\ndate: \"7/20/2023\"\ncategories: [R, linear regression]\n---\n\n\n## Simulate the data\n\n\n::: {.cell}\n\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

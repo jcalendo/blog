@@ -1,0 +1,17 @@
+---
+title: "Bootstrap Differential Expression"
+description: "Putting confidence intervals around gene ranks"
+author: "Gennaro Calendo"
+date: "7/20/2023"
+categories: [R, bioinformatics]
+draft: true
+---
+
+## Bad Biomarker Research
+
+I have been reading Frank Harrell's excellent book, 
+*Regression Modeling Strategies* and equally awesome blog, 
+[Statistical Thinking](https://www.fharrell.com/post/) and came across a post
+where Professor Harrell describes how to perform bad biomarker research. 
+
+

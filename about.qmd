@@ -1,0 +1,18 @@
+---
+title: "About"
+image: ophie.jpg
+about:
+  template: jolla
+  image-width: 8em
+  image-shape: rounded
+  links:
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/gennaro-calendo/
+    - icon: github
+      text: Github
+      href: https://github.com/jcalendo
+
+---
+
+My place for rough ideas about bioinformatics, statistics, and coding.
