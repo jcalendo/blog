@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/bootstrap-differential-expression/index.html",
       "/posts/joining-strings/index.html"
     ]
   }

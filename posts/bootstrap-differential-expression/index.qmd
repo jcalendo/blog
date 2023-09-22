@@ -1,17 +1,137 @@
 ---
-title: "Bootstrap Differential Expression"
-description: "Putting confidence intervals around gene ranks"
+title: "Bootstrapping Differential Expression"
+description: "How many can I do?"
 author: "Gennaro Calendo"
-date: "7/20/2023"
+date: "9/22/2023"
 categories: [R, bioinformatics]
-draft: true
 ---
 
-## Bad Biomarker Research
+## Das Boot
 
-I have been reading Frank Harrell's excellent book, 
-*Regression Modeling Strategies* and equally awesome blog, 
-[Statistical Thinking](https://www.fharrell.com/post/) and came across a post
-where Professor Harrell describes how to perform bad biomarker research. 
+I have been playing around with the idea of bootstrapping differential 
+expression analyses, inspired by [this](https://hbiostat.org/blog/post/badb/) 
+excellent blog post from Professor Frank Harrell on how to do bad biomarker 
+research. In the section titled, "Difficulties of picking 'winners'" he writes:
 
+>Efron’s bootstrap can be used to fully account for the difficulty of the biomarker selection task. Selection of winners involves computing some statistic for each candidate marker, and sorting features by these strength-of-association measures. The statistic can be a crude unadjusted measure (correlation coefficient or unadjusted odds ratio, for example), or an adjusted measure. For each of a few hundred samples with replacement from the original raw dataset, one repeats the entire analysis afresh for each re-sample. All the biomarker candidates are ranked by the chosen statistic, and bootstrap percentile confidence intervals for these ranks are computed over all re-samples. 0.95 confidence limits for the rank of each candidate marker capture the stability of the ranks.
 
+Since I do a lot of analyses that involve differential expression testing where
+samples are done in triplcate, I was curious if I could apply this resampling
+strategy to my work to get a better idea of how often my winners are really 
+winners given we often have such small groups of samples. 
+
+This blog post is not about performing this bootstrapping workflow (I'll save
+that for later). Rather, I want to explore how many unique bootstrap resamples
+we expect to generate given triplicate samples and how often we should expect 
+any given pattern to by sampled.
+
+## How many possible unique combinations of the data are there?
+
+Since a typical experiment consists of samples done in triplicate the question 
+then becomes, how many unique ways of bootstrapping samples are there? The 
+reason I care about *unique* resamples is because when estimating differential
+expression we are comparing the mean expression between two groups and therefore
+a resample consisting of [control1, control1, control2] will give the same 
+mean as resampling [control2, control1, control1].
+
+Since I'm no good at math, to examine this question I'll generate a grid of 
+all possibilities and count up the unique combinations.
+
+```{r}
+library(data.table)
+
+# Create all combinations of the three samples
+samples <- c("A", "B", "C")
+dt <- setDT(expand.grid(samples, samples, samples))
+
+# Combine into a single string representing the selected samples
+dt[, sample := paste0(Var1, Var2, Var3)]
+
+# Count up the number of letters represented in each string
+dt[, `:=`(N_A = stringr::str_count(sample, "A"),
+          N_B = stringr::str_count(sample, "B"),
+          N_C = stringr::str_count(sample, "C"))]
+
+# Count up the unique counts -- total number of rows gives the unique ways of
+#  generating bootstraps for triplicates
+(nrow(unique(dt[, .(N_A, N_B, N_C)])))
+```
+
+As it turns out, this [question](https://stats.stackexchange.com/a/557626) 
+has been asked and answered already and the theoretical answer is given by $2n-1\choose{n}$. So ${2(3)-1\choose{3}}={5\choose3}=10$
+
+Just to be sure, let's try again with 4 letters and check against the theoretical
+answer
+
+```{r}
+samples2 <- c("A", "B", "C", "D")
+dt2 <- setDT(expand.grid(samples2, samples2, samples2, samples2))
+dt2[, sample := paste0(Var1, Var2, Var3, Var4)]
+dt2[, `:=`(N_A = stringr::str_count(sample, "A"),
+           N_B = stringr::str_count(sample, "B"),
+           N_C = stringr::str_count(sample, "C"),
+           N_D = stringr::str_count(sample, "D"))]
+(nrow(unique(dt2[, .(N_A, N_B, N_C, N_D)])))
+```
+
+```{r}
+choose(2*4-1, 4)
+```
+
+So if I want to generate bootstrap resamples for a 3x3 experiment there should be
+10 x 10 = 100 unique comparisons that I can make. But how often should we expect 
+to see any given pattern in a set of triplicates if we perform a bunch of
+bootstraps?
+
+## Pattern counts
+
+What is the expected proportion of each pattern in the triplicate experiment if
+we are to resample with replacement? We can find this by taking the proportions
+of each unique pattern from above.
+
+```{r}
+# Create a string from all of the unique ways to count samples
+dt[, patterns := paste0(N_A, N_B, N_C)]
+
+# Find the proportion of each of the possible ways to combine samples
+sort(table(dt$patterns) / sum(table(dt$patterns)))
+```
+
+We can see that some patterns are more likely than others. For example, we are 
+just as likely to select 0 As, 0 Bs, and 3 Cs as we are 3 As, 0 Bs, and 0 Cs. 
+This is interesting because it suggests that ~22% of our resamples should 
+contain the original samples, ~66% should contain one duplicated sample and 
+~11% should contain triplicates of single sample.
+
+We should see this if we generate samples and count the occurrences.
+
+```{r}
+set.seed(1011001)
+
+bootSamples <- function() {
+  # Generate the random string of selected samples
+  s <- paste(sample(c("A", "B", "C"), replace = TRUE), collapse="")
+  
+  # Count the number of times any individual occurs in the string
+  data.table(
+    N_A = stringr::str_count(s, "A"),
+    N_B = stringr::str_count(s, "B"),
+    N_C = stringr::str_count(s, "C")
+    )
+}
+
+# Generate 100 bootstrap resamples
+bootstraps <- replicate(1e2, bootSamples(), simplify = FALSE)
+bootstraps <- rbindlist(bootstraps)
+bootstraps[, patterns := paste0(N_A, N_B, N_C)]
+
+# Count the frequency of the observed patterns
+sort(table(bootstraps$patterns) / sum(table(bootstraps$patterns)))
+```
+
+Generating 100 samples gets us close to the theoretical values and on average will converge on the theoretical values.
+
+## Thoughts
+
+This is pretty interesting since it suggests that about 5% of the time (0.22 *
+0.22 = 0.048) when resampling two groups of triplicate samples I should expect to get back the same results as in the original analysis.
